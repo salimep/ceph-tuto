@@ -1,0 +1,2 @@
+# ceph-tuto
+ceph OSD 
