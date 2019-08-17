@@ -1,0 +1,129 @@
+
+
+###  export crushmap from ceph OSD storage for modification 
+
+exporting compalied version syntax with example
+
+syntax: ceph osd getcrushmap -o {compiled-crushmap-filename}
+example : ceph osd getcrsuhmap -o mycrush.bin
+
+### decompile the crushmap binary 
+
+syntax: crushtool -d {compiled-crushmap-filename} -o {decompiled-crushmap-filename}
+example: crushtool -d mycrush.bin -o mycrush.txt
+
+##  convert txt crushmap file to binary file
+
+syntax: crushtool -c {decompiled-crushmap-filename}} -o  {compiled-crushmap-filename}
+example: crushtool -c mycrush.txt -o crushmap.bin
+
+## load modified crsuhmap to ceph 
+
+syntax: ceph osd setcrushmap -i  {compiled-crushmap-filename}
+
+example: ceph osd setcrushmap -i  crushmap.bin
+
+## list crush rule in ceph 
+
+syntax: # ceph osd crush rule ls
+
+
+### assign specefic pool to defferent ruleset
+
+syntax: ceph osd pool set <pool_name> crush_ruleset {{ rule set number}}
+
+example: ceph osd pool get rbd crush_ruleset 1
+
+### sample crush map with two host and pg objects all are  replicated between two racks #######
+##########
+
+# begin crush map
+tunable choose_local_tries 0
+tunable choose_local_fallback_tries 0
+tunable choose_total_tries 50
+tunable chooseleaf_descend_once 1
+tunable chooseleaf_vary_r 1
+tunable straw_calc_version 1
+
+# devices
+device 0 device0
+device 1 device1
+device 2 device2
+device 3 device3
+device 4 osd.4
+device 5 osd.5
+device 6 osd.6
+device 7 osd.7
+
+# types
+type 0 osd
+type 1 host
+type 2 chassis
+type 3 rack
+type 4 row
+type 5 pdu
+type 6 pod
+type 7 room
+type 8 datacenter
+type 9 region
+type 10 root
+
+# buckets
+host ceph-osd2 {
+        id -2           # do not change unnecessarily
+        # weight 0.010
+        alg straw
+        hash 0  # rjenkins1
+        item osd.6 weight 0.007
+        item osd.7 weight 0.003
+}
+host ceph-osd3 {
+        id -3           # do not change unnecessarily
+        # weight 0.010
+        alg straw
+        hash 0  # rjenkins1
+        item osd.4 weight 0.007
+        item osd.5 weight 0.003
+}
+root default {
+        id -1           # do not change unnecessarily
+        # weight 0.038
+        alg straw
+        hash 0  # rjenkins1
+        item ceph-osd2 weight 0.019
+        item ceph-osd3 weight 0.019
+}
+rack rack1 {
+        id -4           # do not change unnecessarily
+        # weight 2.000
+        alg straw
+        hash 0  # rjenkins1
+        item ceph-osd2 weight 2.000
+}
+rack rack2 {
+        id -5           # do not change unnecessarily
+        # weight 2.000
+        alg straw
+        hash 0  # rjenkins1
+        item ceph-osd3 weight 2.000
+}
+root rackreplica {
+        id -6           # do not change unnecessarily
+        # weight 4.000
+        alg straw
+        hash 0  # rjenkins1
+        item rack1 weight 2.000
+        item rack2 weight 2.000
+
+
+# rules
+rule replicated_ruleset {
+        ruleset 0
+        type replicated
+        min_size 1
+        max_size 10
+        step take rackreplica
+        step chooseleaf firstn 2 type rack
+        step emit
+}
+
