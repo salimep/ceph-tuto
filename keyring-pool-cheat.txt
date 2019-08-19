@@ -1,0 +1,65 @@
+ ### Ceph POOL creation syntax 
+before having syntx lets understand the importent of pool and placement group in ceph
+
+POOLS:  ceph store data with in pools which is logical group of storing objects , 
+pools manages number of  placement groups which we call generally PGs 
+PGS: ceph maps object in to placement group PGs are shards or fragments of a logical object pool that place objects as a group into OSDs.
+PGP: placement group purpose for data replication between osds 
+
+ in real world pg (placement group and  pgp placement group purpose should be the same for better data replicaton 
+every objects releys in placementgroup 
+for below 5 osd  recomended pg  num is 128  
+
+### pool creation 
+
+ceph osd pool create {pool-name} pg_num pgp_num
+
+####  pg calculation method
+
+           (OSDs * 100)
+Total PGs =  ------------
+              pool size
+
+### list pool syntax
+
+ceph osd lspools
+
+
+## change pool replica to 2 default  3
+
+  ceph osd pool set {{pool name }} size 2
+
+## dump pg in to json format
+
+ ceph pg dump --format json-pretty
+
+### find osd location of the pg
+
+ceph pg map  {pg-id}
+
+## scrub pg 
+
+ceph pg scrub {pg-id}
+
+## generate  keyring file for autherization 
+
+syntax: ceph-authtool -C -n {user name} --gen-key { file name } --mode 0644
+example: ceph-authtool -C -n client.compute1 --gen-key keyring --mode 0644
+
+
+## add capabiities to new kyring file
+
+syntax: ceph-authtool -n {user name} --cap mds 'allow' --cap osd 'allow rw pool={pool name}' --cap mon 'allow r' {file name}
+
+example: ceph-authtool -n client.compute --cap mds 'allow' --cap osd 'allow rw pool=rbd' --cap mon 'allow r' keyring
+
+### add new user to admin keyring file
+
+ceph-authtool /etc/ceph/ceph.client.admin.keyring --import-keyring keyring 
+
+
+## list the content of keyring file
+
+ceph-authtool -l {file name}
+
+
